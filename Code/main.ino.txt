@@ -1,0 +1,58 @@
+#include <ESP8266WiFi.h>
+
+const char* ssid = "JioFiber-AQEm9";  // Wi-Fi ID
+const char* password = "Adarsh@123"; // Wi-Fi Password
+const char* host = "maker.ifttt.com";
+
+const int gasSensorPin = A0;  // MQ-6 sensor pin
+const int buzzerPin = D2;
+const int ledpin = D1;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(D1, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  Serial.println("Connecting to WiFi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("Connected!");
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+  int gasValue = analogRead(gasSensorPin);
+  int gasThreshold = 300;
+  Serial.println(gasValue);
+
+  if (gasValue > gasThreshold) {
+    digitalWrite(D1, HIGH);
+    digitalWrite(buzzerPin, HIGH);
+    sendGasDetectedEmail();
+    delay(300000); // 5 minutes cooldown
+  }
+}
+
+void sendGasDetectedEmail() {
+  WiFiClient client;
+  const int httpPort = 80;
+
+  if (!client.connect(host, httpPort)) {
+    Serial.println("Connection failed");
+    return;
+  }
+
+  String url = "https://maker.ifttt.com/trigger/coco/with/key/bpSUyI-fz2MRKu9n4_A5i2";
+  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" +
+               "Connection: close\r\n\r\n");
+
+  Serial.println("Email sent!");
+  delay(5000);
+  digitalWrite(D1, LOW);
+  digitalWrite(buzzerPin, LOW);
+}
